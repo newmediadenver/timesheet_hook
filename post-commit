@@ -1,0 +1,131 @@
+#!/usr/bin/env python
+"""
+Post-commit hook for keeping jira worklogs up to date.
+"""
+
+import base64
+import getpass
+import json
+import os.path
+from os import getenv
+import re
+import sys
+from subprocess import check_output
+from urllib2 import Request, URLError, HTTPError, urlopen
+
+
+HOME_DIR = os.path.expanduser("~")
+JIRA_SERVER = getenv('JIRA_SERVER', 'https://newmediadenver.atlassian.net')
+# matches the pattern WORD + DASH + NUM where length(WORD) >= 1 and <= 10  eg. "DRUD-1"
+TICKET_REGEX = r'\b[A-Za-z]{1,10}-[0-9]+\b'
+# matches the date input pattern used by Jira eg. "1d 3h 20m" where d == day and h == hour etc.
+TIME_REGEX = r'^(\d*\.?\d[wdhm]\s?)+$'
+# colorizes command line output
+ERROR_COLOR = '\033[91m'
+PASS_COLOR = '\033[92m'
+END_CODE = '\033[0m'
+
+
+def get_ticket():
+    """
+    Gets the branch name and uses a regular expression to determine if it looks like a jira ticket stub.
+
+    :return: the ticket stub or an empty string
+    """
+    branch = check_output(['git', 'symbolic-ref', '--short', 'HEAD']).strip()
+    ticket_pattern = re.compile(TICKET_REGEX, re.I)
+    match = ticket_pattern.search(branch)
+    return match.group() if match else ''
+
+
+def get_commit_message():
+    """
+    Command line git call to find out the commit message.
+
+    :return: commit message
+    """
+    return check_output(['git', 'log', '-1', 'HEAD', '--pretty=%B']).strip()
+
+
+def get_auth():
+    """
+    Open .jira_credentials file or create it if it does not exist.  Prompts user for jira username/password
+    when file does not exist.
+
+    :return: base64 auth string
+    """
+    file_path = '{}/.jira_credentials'.format(HOME_DIR)
+    if os.path.isfile(file_path):
+        with open(file_path, 'r') as ifile:
+            auth = ifile.read()
+    else:
+        username = raw_input("Enter Jira username: ")
+        password = getpass.getpass("Enter Jira password: ")
+        auth = base64.encodestring('%s:%s' % (username, password)).replace('\n', '')
+        with open(file_path, 'w') as ofile:
+            ofile.write(auth)
+
+    return auth
+
+
+def send_post(ticket, comment, time_spent, auth):
+    """
+    Send POST with json payload containing commit message and time spent to workload endpoint.
+
+    :param ticket: jira ticket stub
+    :param comment: commit message
+    :param time_spent: jira time input format from user
+    :param auth: base64 auth string
+    :return: result
+    """
+    url = '{0}/rest/api/2/issue/{1}/worklog'.format(JIRA_SERVER, ticket)
+
+    data = json.dumps({
+        'timeSpent': time_spent,
+        'comment': comment
+    })
+
+    headers = {
+        'Authorization': 'Basic %s' % auth,
+        'Content-Type': 'application/json',
+    }
+
+    request = Request(url, data, headers)
+
+    try:
+        response = urlopen(request)
+    except HTTPError, err:
+        print '{0}The Jira server couldn\'t fulfill the request.\nError code: {1}{2}'.format(
+            ERROR_COLOR,
+            err.code,
+            END_CODE
+        )
+    except URLError, err:
+        print '{0}We failed to reach a server.\nReason: {1}{2}'.format(ERROR_COLOR, err.reason, END_CODE)
+    else:
+        # everything is fine
+        ticket_url = '{0}/browse/{1}'.format(JIRA_SERVER, ticket)
+        print '{0}Time logged successfully! - {1}{2}'.format(PASS_COLOR, ticket_url, END_CODE)
+
+
+def main():
+    """
+    If the branch of the commit matches a jira ticket stub and no time has been added to the commit message
+    then get the user's credentials and time spent and POST them to jira.
+
+    :return:
+    """
+    ticket = get_ticket()
+    message = get_commit_message()
+
+    if ticket and '#time' not in message:
+        sys.stdin = open('/dev/tty')
+        time_spent = raw_input("[post-commit hook] How long did that take to do? (e.g. 1d 2h 30m) ")
+        input_pattern = re.compile(TIME_REGEX, re.I)
+        if input_pattern.match(time_spent):
+            auth = get_auth()
+            send_post(ticket, message, time_spent, auth)
+
+
+if __name__ == "__main__":
+    main()
