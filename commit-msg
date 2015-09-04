@@ -59,7 +59,7 @@ def main():
         commit_path = sys.argv[1]
 
         if os.path.isfile(commit_path) and not is_smart_commit(commit_path):
-            print 'not #time entry in commit message!'
+            print 'no #time entry in commit message!'
             if want_time():
                 add_time(commit_path)
 
