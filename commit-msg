@@ -1,0 +1,68 @@
+#!/usr/bin/env python
+"""
+Commit-msg hook that attempts to force users to add #time entries to their commit messages.
+"""
+
+import os.path
+import sys
+import re
+
+
+# matches the date input pattern used by Jira eg. "1d 3h 20m" where d == day and h == hour etc.
+TIME_REGEX = r'^(\d*\.?\d[wdhm]\s?)+$'
+
+
+def is_smart_commit(commit_path):
+    """
+    Checks if #time was already added to the commit message.
+
+    :param commit_path: path to commit message file
+    :return: true or false
+    """
+    with open(commit_path, 'r') as ifile:
+        message = ifile.read()
+    return '#time' in message
+
+
+def want_time():
+    """
+    Asks user if time should be added to commit message.
+    :return:
+    """
+    sys.stdin = open('/dev/tty')
+    answer = raw_input('Would you like to add time? [y/n]: ')
+    return answer.lower() in ['y', 'yes', '1']
+
+
+def add_time(commit_path):
+    """
+    Prompts user for time input and appends to commit message.
+
+    :param commit_path: path to commit message file
+    :return:
+    """
+    time_input = raw_input('[commit-msg hook] How long did that take to do? (e.g. 1d 2h 30m) ')
+    input_pattern = re.compile(TIME_REGEX, re.I)
+    if input_pattern.match(time_input):
+        with open(commit_path, 'a') as ofile:
+            ofile.write('#time ' + time_input)
+
+
+def main():
+    """
+    Get commit message file path from args. Makes sure file exists then adds time to commit message
+    if none exists and the user wants it.
+    :return:
+    """
+    # ensure the proper number of args were passed
+    if len(sys.argv) == 2:
+        commit_path = sys.argv[1]
+
+        if os.path.isfile(commit_path) and not is_smart_commit(commit_path):
+            print 'not #time entry in commit message!'
+            if want_time():
+                add_time(commit_path)
+
+
+if __name__ == '__main__':
+    main()
