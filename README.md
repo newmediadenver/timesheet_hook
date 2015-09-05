@@ -23,6 +23,8 @@ After you commit code you will be asked to enter your Jira credentials if you ha
 
 ## commit-msg use
 
+Note: use of this hook will negate the post-commit hook
+
 1. clone this repository
 1. cp the commit-msg file into the .git/hooks directory of your repository
 1. make sure the file is executable
