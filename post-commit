@@ -119,6 +119,7 @@ def main():
     message = get_commit_message()
 
     if ticket and '#time' not in message:
+        # raw_input() without this fails..git hijacking stdin or something
         sys.stdin = open('/dev/tty')
         time_spent = raw_input("[post-commit hook] How long did that take to do? (e.g. 1d 2h 30m) ")
         input_pattern = re.compile(TIME_REGEX, re.I)
