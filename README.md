@@ -6,7 +6,7 @@ post-commit hook for logging time to jira
 
 1. clone this repository
 1. update Jira server variable if not a newmedia employee
-1. cp the post-commit file into the .git/hooks directory of your repository
+1. cp the post-commit file into the .git/hooks directory of the repo you want to track time for
 1. make sure the file is executable
 
 ### Change Jira server URL
