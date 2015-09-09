@@ -47,7 +47,7 @@ def get_commit_message():
     return check_output(['git', 'log', '-1', 'HEAD', '--pretty=%B']).strip()
 
 
-def get_auth():
+def get_auth(ticket):
     """
     Open .jira_credentials file or create it if it does not exist.  Prompts user for jira username/password
     when file does not exist.
@@ -65,6 +65,33 @@ def get_auth():
         with open(file_path, 'w') as ofile:
             ofile.write(auth)
 
+    url = '{0}/rest/api/2/issue/{1}'.format(JIRA_SERVER, ticket)
+    print url
+    request = Request(url)
+    request.add_header("Authorization", "Basic %s" % auth)
+
+    try:
+        response = urlopen(request)
+    except HTTPError, err:
+
+        if err.code == 401:
+            answer = raw_input("401 Unauthorized - Would you like to re-enter your credentials? (y/n) ")
+            if answer.lower() in ['y', 'yes']:
+                os.remove(file_path)
+                return get_auth(ticket)
+        else:
+            print '{0}The Jira server couldn\'t fulfill the request.\nError code: {1}{2}'.format(
+                ERROR_COLOR,
+                err.code,
+                END_CODE
+            )
+
+    except URLError, err:
+        print '{0}We failed to reach a server.\nReason: {1}{2}'.format(ERROR_COLOR, err.reason, END_CODE)
+    else:
+        # everything is fine
+        print '{0}Credentials saved successfully!{1}'.format(PASS_COLOR, END_CODE)
+        
     return auth
 
 
@@ -124,7 +151,7 @@ def main():
         time_spent = raw_input("[post-commit hook] How long did that take to do? (e.g. 1d 2h 30m) ")
         input_pattern = re.compile(TIME_REGEX, re.I)
         if input_pattern.match(time_spent):
-            auth = get_auth()
+            auth = get_auth(ticket)
             send_post(ticket, message, time_spent, auth)
 
 
