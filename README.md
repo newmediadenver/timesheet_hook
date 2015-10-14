@@ -23,3 +23,4 @@ Edit post-commit and change JIRA_SERVER to your Jira server URL.  You can also s
 After you commit code you will be asked to enter your Jira credentials if you havent done so already.  You will then need to enter time in the format
 "1d 1h 1m".
 
+If you don't want to submit time just hit [enter] instead of entering a time.
