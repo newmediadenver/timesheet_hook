@@ -26,15 +26,14 @@ PASS_COLOR = '\033[92m'
 END_CODE = '\033[0m'
 
 
-def get_ticket():
+def get_ticket(message):
     """
-    Gets the branch name and uses a regular expression to determine if it looks like a jira ticket stub.
+    Uses a regular expression to determine if the commit msg contains a jira ticket stub.
 
     :return: the ticket stub or an empty string
     """
-    branch = check_output(['git', 'symbolic-ref', '--short', 'HEAD']).strip()
     ticket_pattern = re.compile(TICKET_REGEX, re.I)
-    match = ticket_pattern.search(branch)
+    match = ticket_pattern.search(message)
     return match.group() if match else ''
 
 
@@ -115,8 +114,8 @@ def main():
 
     :return:
     """
-    ticket = get_ticket()
     message = get_commit_message()
+    ticket = get_ticket(message)
 
     if ticket and '#time' not in message:
         # raw_input() without this fails..git hijacking stdin or something

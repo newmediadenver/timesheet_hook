@@ -1,6 +1,6 @@
 # timesheet hook
 
-post-commit hook for logging time to jira
+post-commit hook for logging time to jira (this branch searches for the ticket number in the commit message instead of the branch name)
 
 ## post-commit use
 
@@ -18,7 +18,7 @@ Edit post-commit and change JIRA_SERVER to your Jira server URL.  You can also s
     chmod +x /path/to/repo/.git/hooks/post-commit
 
 
-**Note**: This post-commit hook will only take effect when your branch matches a JIRA ticket issue pattern. eg. ADMIN-2 or TESTING-23
+**Note**: This post-commit hook will only take effect when your commit message matches a JIRA ticket issue pattern. eg. ADMIN-2 or TESTING-23
 
 After you commit code you will be asked to enter your Jira credentials if you havent done so already.  You will then need to enter time in the format
 "1d 1h 1m".
