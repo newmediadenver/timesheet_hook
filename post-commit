@@ -116,6 +116,7 @@ def main():
     """
     message = get_commit_message()
     ticket = get_ticket(message)
+    message = message.split(' ', 1)[1]
 
     if ticket and '#time' not in message:
         # raw_input() without this fails..git hijacking stdin or something
